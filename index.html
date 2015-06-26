@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=9">
+<meta charset="UTF-8">
+<meta name="viewport" content="user-scalable=no">
+<title>Rikoten bubble</title>
+<link href="./css/bubble.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="./ext.js" charset="UTF-8"></script>
+<script type="text/javascript" src="./subclass.js" charset="UTF-8"></script>
+<script type="text/javascript">
+var circleMan;
+onload = function() {
+	circleMan = new RikotenCircle();
+}
+
+function RikotenCircle(){
+	var that = this;
+	//
+	var resizef = function(){ that.resizeTo(that.div_canvas.clientWidth, that.div_canvas.clientHeight); };
+	addEvent(window, "resize", resizef);
+	//
+	this.circleList = new Array();	// [[pos, r, col, direction], ...]
+	this.mainCanvas = document.getElementById("mainCanvas");
+	this.mainContext = this.mainCanvas.getContext('2d');
+	this.div_canvas = document.getElementById("canvaswrapper");
+	this.canvasSizeChanged = false;
+	//
+	resizef();
+	//
+	window.setInterval(function(){ that.tick(); }, 1000 / this.tickPerSecond);
+}
+RikotenCircle.prototype = {
+	tickPerSecond: 30,
+	circles: 15,
+	maxRadius: 150,
+	radiusDelta: 0.5,
+	tick: function(){
+		if(this.canvasSizeChanged){
+			this.resetCircles();
+			this.canvasSizeChanged = false;
+		}
+		var ctx = this.mainContext;
+		var cl = this.circleList;
+		ctx.clearRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
+		for(i = 0; i < cl.length; i++){
+			if(cl[i][3]){
+				cl[i][1] += this.radiusDelta;
+				if(cl[i][1] > this.maxRadius){
+					cl[i][3] = false;
+				}
+			} else{
+				cl[i][1] -= this.radiusDelta;
+				if(cl[i][1] <= 0){
+					cl[i][3] = true;
+					cl[i][1] = -cl[i][1];
+				}
+			}
+			//
+			ctx.strokeStyle = cl[i][2];
+			ctx.lineWidth = cl[i][1] * cl[i][1] / 5000 ;
+			ctx.beginPath();
+			ctx.arc(cl[i][0].x, cl[i][0].y, cl[i][1], 0, Math.PI*2, false);
+			ctx.closePath();
+			ctx.stroke();
+		}
+	},
+	resetCircles: function(){
+		this.canvasSize = new Vector2D(this.mainCanvas.width, this.mainCanvas.height);
+		var cl = this.circleList;
+		var cs = this.canvasSize;
+		var h, s, v, o;
+		for(i = 0; i < this.circles; i++){
+			cl[i] = new Array();
+			cl[i][0] = new Vector2D(Math.random() * cs.x, Math.random() * cs.y);
+			cl[i][1] = Math.random() * this.maxRadius;
+			h = this.getRandom(0, 360);
+			s = this.getRandom(128 + 64, 255);
+			v = this.getRandom(128 + 64 + 32, 255)
+			o = this.HSVtoRGB(h, s, v);
+			cl[i][2] = "rgba(" + o.r + ", " + o.g + ", " + o.b + ", " + "0.75)";
+		}
+	},
+	resizeTo: function(w, h){
+		this.mainCanvas.width = w;
+		this.mainCanvas.height = h;
+		this.canvasSizeChanged = true;
+	},
+	getRandom: function(min, max) {
+		return Math.random() * (max - min) + min;
+	},
+	HSVtoRGB: function(h, s, v) {
+		// http://d.hatena.ne.jp/ja9/20100903/1283504341
+		var r, g, b; // 0..255
+		//
+		while (h < 0) {
+			h += 360;
+		}
+		h = h % 360;
+		// 特別な場合 saturation = 0
+		if (s == 0) {
+			// → RGB は V に等しい
+			v = Math.round(v);
+			return {'r': v, 'g': v, 'b': v};
+		}
+		s = s / 255;
+		var i = Math.floor(h / 60) % 6,
+		f = (h / 60) - i,
+		p = v * (1 - s),
+		q = v * (1 - f * s),
+		t = v * (1 - (1 - f) * s)
+		switch (i) {
+			case 0 :
+				r = v;  g = t;  b = p;  break;
+			case 1 :
+				r = q;  g = v;  b = p;  break;
+			case 2 :
+				r = p;  g = v;  b = t;  break;
+			case 3 :
+				r = p;  g = q;  b = v;  break;
+			case 4 :
+				r = t;  g = p;  b = v;  break;
+			case 5 :
+				r = v;  g = p;  b = q;  break;
+		}
+		return {'r': Math.round(r), 'g': Math.round(g), 'b': Math.round(b)};
+	}
+}
+
+</script>
+</head>
+<body ontouchmove="event.preventDefault()">
+<div id="canvaswrapper">
+	<canvas id="mainCanvas"></canvas>
+</div>
+</body>
+</html>
